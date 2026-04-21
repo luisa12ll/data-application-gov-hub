@@ -15,13 +15,15 @@ class ClienteSenadores(ClienteBase):
     def __init__(self) -> None:
         super().__init__(base_url=ClienteSenadores.BASE_URL)
         logging.info(
-            f"[cliente_senadores.py] Initialized ClienteSenadores em: {ClienteSenadores.BASE_URL}"
+            "[cliente_senadores.py] Initialized ClienteSenadores em: "
+            f"{ClienteSenadores.BASE_URL}"
         )
 
     def get_senadores_atuais(self) -> list:
         """
         Obtém a lista de senadores em exercício.
-        O Senado geralmente retorna tudo em uma única chamada, sem paginação complexa como a Câmara.
+        O Senado geralmente retorna tudo em uma única chamada,
+        sem paginação complexa como a Câmara.
         """
         endpoint = "/senador/lista/atual"
         logging.info("[cliente_senadores.py] Fetching senadores atuais")
@@ -31,7 +33,8 @@ class ClienteSenadores(ClienteBase):
         )
 
         if status == http.HTTPStatus.OK and isinstance(data, dict):
-            # A estrutura do JSON do Senado é: ListaParlamentarEmExercicio -> Parlamentares -> Parlamentar
+            # Estrutura esperada: ListaParlamentarEmExercicio ->
+            # Parlamentares -> Parlamentar.
             try:
                 lista_root = data.get("ListaParlamentarEmExercicio", {})
                 parlamentares = lista_root.get("Parlamentares", {}).get("Parlamentar", [])
@@ -40,7 +43,8 @@ class ClienteSenadores(ClienteBase):
                     parlamentares = [parlamentares]
 
                 logging.info(
-                    f"[cliente_senadores.py] Successfully fetched {len(parlamentares)} senadores"
+                    "[cliente_senadores.py] Successfully fetched "
+                    f"{len(parlamentares)} senadores"
                 )
                 return parlamentares
             except Exception as e:
@@ -51,3 +55,38 @@ class ClienteSenadores(ClienteBase):
         else:
             logging.warning(f"[cliente_senadores.py] Failed with status: {status}")
             return []
+
+    def get_filiacoes_senador(self, senador_id: int | str) -> list[dict[str, Any]] | None:
+        """Obtém o histórico de filiações de um senador."""
+        endpoint = f"/senador/{senador_id}/filiacoes"
+        logging.info(
+            f"[cliente_senadores.py] Fetching filiacoes for senador_id={senador_id}"
+        )
+
+        status, data = self.request(
+            http.HTTPMethod.GET,
+            endpoint,
+            headers=self.BASE_HEADER,
+            params={"v": 5},
+        )
+
+        if status == http.HTTPStatus.OK and isinstance(data, dict):
+            try:
+                root = data.get("ListaFiliacoesParlamentar", {})
+                filiacao = root.get("Filiacoes", {}).get("Filiacao", [])
+
+                if isinstance(filiacao, dict):
+                    return [filiacao]
+                if isinstance(filiacao, list):
+                    return filiacao
+            except Exception as e:
+                logging.error(
+                    "[cliente_senadores.py] Erro ao parsear filiacoes do senador "
+                    f"{senador_id}: {e}"
+                )
+
+        logging.warning(
+            "[cliente_senadores.py] Failed to fetch filiacoes for "
+            f"senador_id={senador_id} with status: {status}"
+        )
+        return None
