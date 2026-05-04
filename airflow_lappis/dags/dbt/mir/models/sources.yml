@@ -21,6 +21,7 @@ sources:
     schema: camara_deputados
     tables: 
       - name: deputados
+      - name: deputados_historico
 
   - name: senado_federal
     schema: senado_federal
@@ -31,6 +32,7 @@ sources:
     schema: dados_abertos
     tables:
       - name: logo_partidos
+      - name: senadores_historico
 
   - name: transfere_gov
     schema: transfere_gov
